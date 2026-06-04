@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 import TaskModal from "./TaskModal";
+import TaskCard from "./TaskCard";
 
 const STAFF_LIST = [
   "",
@@ -62,6 +63,10 @@ function App() {
 
   const [sortAsc, setSortAsc] =
     useState(false);
+
+
+  const isMobile = window.innerWidth < 768;
+
 
   useEffect(() => {
     loadTasks();
@@ -142,6 +147,51 @@ function App() {
     setShowModal(false);
     loadTasks();
   }
+
+  async function GiaoViec() {
+  if (!selectedTask) {
+    alert("Vui lòng chọn công việc");
+    return;
+  }
+
+  const taskCode =
+    `${selectedTask.task_date}_${String(
+      selectedTask.task_no || 0
+    ).padStart(2, "0")}`;
+
+  let message =
+`📌 GIAO VIỆC: ${taskCode}
+👤 Người nhận: ${selectedTask.staff}
+📝 ${selectedTask.task_name}
+⏰ Deadline: ${selectedTask.deadline}
+`;
+
+  if (
+    selectedTask.note &&
+    selectedTask.note.trim() !== ""
+  ) {
+    message +=
+
+`\n\n📎 Ghi chú:
+${selectedTask.note}`;
+  }
+
+  try {
+    await navigator.clipboard.writeText(
+      message
+    );
+
+    alert(
+      "Đã copy nội dung giao việc"
+    );
+  } catch (err) {
+    console.error(err);
+
+    alert(
+      "Không thể copy nội dung"
+    );
+  }
+}
 
   const filteredTasks = tasks
     .filter((task) => {
@@ -284,6 +334,14 @@ function App() {
 
     setShowModal(true);
   }
+
+  function clearFilters() {
+  setSearchDate("");
+  setSearchTask("");
+  setSearchStaff("");
+  setSearchStatus("");
+}
+
 const toolbarButtonStyle = {
   fontSize: "18px",
   fontWeight: "bold",
@@ -339,12 +397,29 @@ const toolbarButtonStyle = {
 >
   New
 </button>
+
 <button
   style={toolbarButtonStyle}
   onClick={editSelectedTask}
 >
   Edit
 </button>
+
+<button
+  style={toolbarButtonStyle}
+  onClick={clearFilters}
+>
+  Clear Filter
+</button>
+
+
+<button
+  style={toolbarButtonStyle}
+  onClick={GiaoViec}
+>
+  Giao Việc
+</button>
+
 
       </div>
 
@@ -667,7 +742,7 @@ const toolbarButtonStyle = {
                       cellStyle
                     }
                   >
-                    {task.id}
+                    {task.task_no}
                   </td>
 
                   <td
