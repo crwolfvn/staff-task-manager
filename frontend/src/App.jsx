@@ -1,5 +1,27 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
+import TaskModal from "./TaskModal";
+
+const STAFF_LIST = [
+  "",
+  "Điều",
+  "Hương",
+  "Thư",
+  "Dùm",
+  "Thắng",
+  "Thành",
+  "Phố",
+  "Quân",
+  "Worker01",
+  "Worker02",
+];
+
+const STATUS_LIST = [
+  "Open",
+  "OnGoing",
+  "Done",
+  "Cancel",
+];
 
 function removeVietnameseTones(str) {
   if (!str) return "";
@@ -14,14 +36,32 @@ function removeVietnameseTones(str) {
 function App() {
   const [tasks, setTasks] = useState([]);
 
-  const [searchDate, setSearchDate] = useState("");
-  const [searchTask, setSearchTask] = useState("");
-  const [searchStaff, setSearchStaff] = useState("");
-  const [searchStatus, setSearchStatus] = useState("");
-  
-  const [sortField, setSortField] = useState("id");
-  const [sortAsc, setSortAsc] = useState(false);
-  
+  const [selectedTask, setSelectedTask] =
+    useState(null);
+
+  const [showModal, setShowModal] =
+    useState(false);
+
+  const [editTask, setEditTask] =
+    useState({});
+
+  const [searchDate, setSearchDate] =
+    useState("");
+
+  const [searchTask, setSearchTask] =
+    useState("");
+
+  const [searchStaff, setSearchStaff] =
+    useState("");
+
+  const [searchStatus, setSearchStatus] =
+    useState("");
+
+  const [sortField, setSortField] =
+    useState("id");
+
+  const [sortAsc, setSortAsc] =
+    useState(false);
 
   useEffect(() => {
     loadTasks();
@@ -49,46 +89,92 @@ function App() {
     }
   }
 
-  const staffList = [
-    ...new Set(
-      tasks
-        .map((t) => t.staff)
-        .filter(Boolean)
-    ),
-  ].sort();
+  async function saveTask() {
+    let data = {
+      ...editTask,
+    };
 
-  const statusList = [
-    ...new Set(
-      tasks
-        .map((t) => t.status)
-        .filter(Boolean)
-    ),
-  ].sort();
+    if (
+      data.status === "Done" &&
+      !data.completed_at
+    ) {
+      const now = new Date();
+
+      data.completed_at =
+        now.toLocaleDateString("en-GB") +
+        " " +
+        now.getHours() +
+        ":" +
+        String(
+          now.getMinutes()
+        ).padStart(2, "0");
+    }
+
+    if (
+      data.status !== "Done"
+    ) {
+      data.completed_at = "";
+    }
+
+    if (data.id) {
+      const { error } = await supabase
+        .from("tasks")
+        .update(data)
+        .eq("id", data.id);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    } else {
+      delete data.id;
+
+      const { error } = await supabase
+        .from("tasks")
+        .insert([data]);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+    }
+
+    setShowModal(false);
+    loadTasks();
+  }
 
   const filteredTasks = tasks
     .filter((task) => {
-      const dateMatch = (task.task_date || "")
-        .toLowerCase()
-        .includes(searchDate.toLowerCase());
-
-      const taskMatch = removeVietnameseTones(
-        task.task_name || ""
+      const dateMatch = (
+        task.task_date || ""
       )
         .toLowerCase()
         .includes(
-          removeVietnameseTones(searchTask)
-            .toLowerCase()
+          searchDate.toLowerCase()
         );
+
+      const taskMatch =
+        removeVietnameseTones(
+          task.task_name || ""
+        )
+          .toLowerCase()
+          .includes(
+            removeVietnameseTones(
+              searchTask
+            ).toLowerCase()
+          );
 
       const staffMatch =
         searchStaff === ""
           ? true
-          : task.staff === searchStaff;
+          : task.staff ===
+            searchStaff;
 
       const statusMatch =
         searchStatus === ""
           ? true
-          : task.status === searchStatus;
+          : task.status ===
+            searchStatus;
 
       return (
         dateMatch &&
@@ -98,20 +184,39 @@ function App() {
       );
     })
     .sort((a, b) => {
-      let valueA = a[sortField] || "";
-      let valueB = b[sortField] || "";
+      let valueA =
+        a[sortField] || "";
 
-      if (typeof valueA === "string")
-        valueA = valueA.toLowerCase();
+      let valueB =
+        b[sortField] || "";
 
-      if (typeof valueB === "string")
-        valueB = valueB.toLowerCase();
+      if (
+        typeof valueA ===
+        "string"
+      ) {
+        valueA =
+          valueA.toLowerCase();
+      }
 
-      if (valueA < valueB)
-        return sortAsc ? -1 : 1;
+      if (
+        typeof valueB ===
+        "string"
+      ) {
+        valueB =
+          valueB.toLowerCase();
+      }
 
-      if (valueA > valueB)
-        return sortAsc ? 1 : -1;
+      if (valueA < valueB) {
+        return sortAsc
+          ? -1
+          : 1;
+      }
+
+      if (valueA > valueB) {
+        return sortAsc
+          ? 1
+          : -1;
+      }
 
       return 0;
     });
@@ -122,6 +227,81 @@ function App() {
     color: "#222",
   };
 
+  function getStatusColor(
+    status
+  ) {
+    switch (status) {
+      case "Done":
+        return "green";
+
+      case "OnGoing":
+        return "orange";
+
+      case "Cancel":
+        return "gray";
+
+      default:
+        return "red";
+    }
+  }
+
+  function createNewTask() {
+      const today = new Date();
+ const dateString =
+    String(
+      today.getDate()
+    ).padStart(2, "0") +
+    "/" +
+    String(
+      today.getMonth() + 1
+    ).padStart(2, "0") +
+    "/" +
+    today.getFullYear();
+    setEditTask({
+       task_date: dateString,
+      task_name: "",
+      deadline: "",
+      staff: "",
+      status: "Open",
+      completed_at: "",
+      note: "",
+    });
+
+    setShowModal(true);
+  }
+
+  function editSelectedTask() {
+    if (!selectedTask) {
+      alert(
+        "Please select a task"
+      );
+      return;
+    }
+
+    setEditTask({
+      ...selectedTask,
+    });
+
+    setShowModal(true);
+  }
+const toolbarButtonStyle = {
+  fontSize: "18px",
+  fontWeight: "bold",
+
+  padding: "12px 24px",
+
+  color: "#0066cc",
+
+  cursor: "pointer",
+
+  borderRadius: "8px",
+
+  border: "1px solid #0066cc",
+
+  backgroundColor: "white",
+
+  minWidth: "120px",
+};
   return (
     <div
       style={{
@@ -141,6 +321,35 @@ function App() {
         style={{
           display: "flex",
           gap: "10px",
+          justifyContent: "center",
+          marginBottom: "15px",
+        }}
+      >
+        <button
+  style={toolbarButtonStyle}
+  onClick={loadTasks}
+>
+  Reload
+</button>
+<button
+  style={toolbarButtonStyle}
+  onClick={createNewTask}
+>
+  New
+</button>
+<button
+  style={toolbarButtonStyle}
+  onClick={editSelectedTask}
+>
+  Edit
+</button>
+
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
           marginBottom: "20px",
           flexWrap: "wrap",
           justifyContent: "center",
@@ -151,7 +360,9 @@ function App() {
           placeholder="Date"
           value={searchDate}
           onChange={(e) =>
-            setSearchDate(e.target.value)
+            setSearchDate(
+              e.target.value
+            )
           }
           style={{
             padding: "8px",
@@ -164,7 +375,9 @@ function App() {
           placeholder="Task"
           value={searchTask}
           onChange={(e) =>
-            setSearchTask(e.target.value)
+            setSearchTask(
+              e.target.value
+            )
           }
           style={{
             padding: "8px",
@@ -175,7 +388,9 @@ function App() {
         <select
           value={searchStaff}
           onChange={(e) =>
-            setSearchStaff(e.target.value)
+            setSearchStaff(
+              e.target.value
+            )
           }
           style={{
             padding: "8px",
@@ -186,20 +401,24 @@ function App() {
             All Staff
           </option>
 
-          {staffList.map((staff) => (
-            <option
-              key={staff}
-              value={staff}
-            >
-              {staff}
-            </option>
-          ))}
+          {STAFF_LIST.map(
+            (staff) => (
+              <option
+                key={staff}
+                value={staff}
+              >
+                {staff}
+              </option>
+            )
+          )}
         </select>
 
         <select
           value={searchStatus}
           onChange={(e) =>
-            setSearchStatus(e.target.value)
+            setSearchStatus(
+              e.target.value
+            )
           }
           style={{
             padding: "8px",
@@ -210,16 +429,32 @@ function App() {
             All Status
           </option>
 
-          {statusList.map((status) => (
-            <option
-              key={status}
-              value={status}
-            >
-              {status}
-            </option>
-          ))}
+          {STATUS_LIST.map(
+            (status) => (
+              <option
+                key={status}
+                value={status}
+              >
+                {status}
+              </option>
+            )
+          )}
         </select>
       </div>
+
+      <p
+        style={{
+          textAlign: "center",
+          fontWeight: "bold",
+          color: "#0066cc",
+        }}
+      >
+        Selected:
+        {" "}
+        {selectedTask
+          ? selectedTask.task_name
+          : "None"}
+      </p>
 
       <p
         style={{
@@ -227,152 +462,316 @@ function App() {
           fontSize: "20px",
         }}
       >
-        Total Tasks: {filteredTasks.length} / {tasks.length}
+        Total Tasks:
+        {" "}
+        {
+          filteredTasks.length
+        }
+        {" / "}
+        {tasks.length}
       </p>
 
       <div
         style={{
           maxHeight: "700px",
-          overflowY: "auto",
-          border: "1px solid #ccc",
-          backgroundColor: "white",
+          overflow: "auto",
+          border:
+            "1px solid #ccc",
+          backgroundColor:
+            "white",
         }}
       >
         <table
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
+            minWidth: "1800px",
+            borderCollapse:
+              "collapse",
             color: "#222",
           }}
         >
           <thead
             style={{
-              position: "sticky",
+              position:
+                "sticky",
               top: 0,
-              backgroundColor: "#dcdcdc",
+              backgroundColor:
+                "#dcdcdc",
               zIndex: 10,
             }}
           >
             <tr>
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
+              >
+                Select
+              </th>
+
+              <th
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("id")
+                  handleSort(
+                    "id"
+                  )
                 }
               >
                 ID
               </th>
 
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("task_date")
+                  handleSort(
+                    "task_date"
+                  )
                 }
               >
                 Date
               </th>
 
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("task_name")
+                  handleSort(
+                    "task_name"
+                  )
                 }
               >
                 Task
               </th>
 
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("deadline")
+                  handleSort(
+                    "deadline"
+                  )
                 }
               >
                 Deadline
               </th>
 
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("staff")
+                  handleSort(
+                    "staff"
+                  )
                 }
               >
                 Staff
               </th>
 
               <th
-                style={cellStyle}
+                style={
+                  cellStyle
+                }
                 onClick={() =>
-                  handleSort("status")
+                  handleSort(
+                    "status"
+                  )
                 }
               >
                 Status
+              </th>
+
+              <th
+                style={
+                  cellStyle
+                }
+                onClick={() =>
+                  handleSort(
+                    "completed_at"
+                  )
+                }
+              >
+                Completed
+              </th>
+
+              <th
+                style={
+                  cellStyle
+                }
+                onClick={() =>
+                  handleSort(
+                    "note"
+                  )
+                }
+              >
+                Note
               </th>
             </tr>
           </thead>
 
           <tbody>
             {filteredTasks.map(
-              (task, index) => (
+              (
+                task,
+                index
+              ) => (
                 <tr
                   key={task.id}
-                  onDoubleClick={() =>
-                    alert(
-                      `ID: ${task.id}\n\n${task.task_name}`
-                    )
-                  }
+                  onClick={() =>
+  setSelectedTask(
+    selectedTask?.id === task.id
+      ? null
+      : task
+  )
+}
                   style={{
                     backgroundColor:
-                      index % 2 === 0
+                      selectedTask?.id ===
+                      task.id
+                        ? "#d6ecff"
+                        : index %
+                            2 ===
+                          0
                         ? "#ffffff"
                         : "#f5f5f5",
-                    cursor: "pointer",
+
+                    cursor:
+                      "pointer",
                   }}
                 >
-                  <td style={cellStyle}>
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
+                    <input
+                      type="radio"
+                      checked={
+                        selectedTask?.id ===
+                        task.id
+                      }
+                      readOnly
+                    />
+                  </td>
+
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
                     {task.id}
                   </td>
 
-                  <td style={cellStyle}>
-                    {task.task_date}
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
+                    {
+                      task.task_date
+                    }
                   </td>
 
                   <td
                     style={{
                       ...cellStyle,
-                      textAlign: "left",
+                      minWidth:
+                        "500px",
+                      textAlign:
+                        "left",
                     }}
                   >
-                    {task.task_name}
+                    {
+                      task.task_name
+                    }
                   </td>
 
-                  <td style={cellStyle}>
-                    {task.deadline}
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
+                    {
+                      task.deadline
+                    }
                   </td>
 
-                  <td style={cellStyle}>
-                    {task.staff}
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
+                    {
+                      task.staff
+                    }
                   </td>
 
                   <td
                     style={{
                       ...cellStyle,
-                      fontWeight: "bold",
+                      fontWeight:
+                        "bold",
                       color:
-                        task.status ===
-                        "Done"
-                          ? "green"
-                          : "red",
+                        getStatusColor(
+                          task.status
+                        ),
                     }}
                   >
-                    {task.status}
+                    {
+                      task.status
+                    }
+                  </td>
+
+                  <td
+                    style={
+                      cellStyle
+                    }
+                  >
+                    {
+                      task.completed_at
+                    }
+                  </td>
+
+                  <td
+                    style={{
+                      ...cellStyle,
+                      minWidth:
+                        "400px",
+                      textAlign:
+                        "left",
+                    }}
+                  >
+                    {task.note}
                   </td>
                 </tr>
               )
             )}
           </tbody>
-          
         </table>
       </div>
+
+      <TaskModal
+        show={showModal}
+        title={
+          editTask.id
+            ? "Edit Task"
+            : "New Task"
+        }
+        task={editTask}
+        setTask={setEditTask}
+        onSave={saveTask}
+        onClose={() =>
+          setShowModal(false)
+        }
+        staffOptions={
+          STAFF_LIST
+        }
+      />
     </div>
   );
 }
