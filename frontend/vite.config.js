@@ -1,7 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
+
+  // KHÔNG Sử dụng CNAME
+  //base: '/staff-task-manager/',
+
+  // Sử dụng CNAME
+  base: '/',
+
+  
   plugins: [react()],
 })
