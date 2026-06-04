@@ -1,0 +1,14 @@
+Cấu trúc cơ bản gồm có
+
+1. Database : supabase.com hoạt động như một SQL Lite để lưu table Task 
+Hỗ trợ chức năng tạo cột, import from csv , SQL querry command ....
+
+
+2. Giao diện thao tác : CodeSpace của Github để tạo một app java jsx với cấu trúc 
+a. App.jsx  : Giao diện chính
+b. TaskModal : Subform thực hiện thao tác : NEW , EDIT 
+c. TaskTable : hiển thị bảng dữ liệu dạng excel
+d. Task Card : Giao diện phụ hiển thị dữ liệu dạng card cho mobile 
+
+3. Lưu ý:
+Title của Webpage được chỉnh ở file index.html
