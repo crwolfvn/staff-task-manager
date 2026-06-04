@@ -12,3 +12,36 @@ d. Task Card : Giao diện phụ hiển thị dữ liệu dạng card cho mobile
 
 3. Lưu ý:
 Title của Webpage được chỉnh ở file index.html
+
+
+
+
+
+4. Cách lệnh thường dùng
+a. Commit công việc đang làm để tạm dừng 
+git add .
+git commit -m "V0.7 checkpoint - export excel and assigned_at"
+git push
+
+
+b. Tạo branch mới để lưu backup, nếu có lỗi thì quay lại cho dễ
+git checkout -b version123
+
+List of branch : git branch
+Move về branch cũ: git checkout version123
+
+
+
+
+c. Tạo tag  (verson) mới để dễ dàng quay lại cũng như để publish
+git tag v0.70
+git push origin v0.70
+
+d. Run chế độ dev
+npm run dev
+
+e. Build and Deploy app 
+npm run build
+npm run deply
+
+
