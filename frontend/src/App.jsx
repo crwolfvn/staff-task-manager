@@ -374,7 +374,7 @@ const toolbarButtonStyle = {
           textAlign: "center",
         }}
       >
-        Task Manager
+        Task Manager v0.7
       </h1>
 
       <div
