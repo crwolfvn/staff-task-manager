@@ -22,14 +22,22 @@ export default function TaskModal({
       }}
     >
       <div
-        style={{
-          background: "white",
-          width: "700px",
-          padding: "20px",
-          borderRadius: "10px",
-          color: "#222",
-        }}
-      >
+  style={{
+    background: "white",
+
+    width: "95%",
+    maxWidth: "900px",
+
+    padding: "20px",
+
+    borderRadius: "10px",
+
+    color: "#222",
+
+    maxHeight: "90vh",
+    overflowY: "auto",
+  }}
+>
         <h2>{title}</h2>
 
         <div

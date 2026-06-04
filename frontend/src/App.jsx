@@ -307,6 +307,8 @@ const toolbarButtonStyle = {
       style={{
         padding: "20px",
         fontFamily: "Arial",
+        width: "95%",
+        margin: "0 auto",
       }}
     >
       <h1
@@ -473,6 +475,7 @@ const toolbarButtonStyle = {
 
       <div
         style={{
+          maxWidth: "100%",
           maxHeight: "700px",
           overflow: "auto",
           border:
@@ -483,7 +486,7 @@ const toolbarButtonStyle = {
       >
         <table
           style={{
-            minWidth: "1800px",
+            minWidth: "99%",
             borderCollapse:
               "collapse",
             color: "#222",
