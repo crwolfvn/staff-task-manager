@@ -46,7 +46,7 @@ async function saveTask() {
     setShowModal(false);
     loadTasks(); }
 
-async function MessageBuild(task) { 
+async function MessageBuild(task) { let taskToSend = { ...task };
   // Open -> OnGoing 
   if (task.status === "Open") { const { error } = await supabase .from("tasks") .update({ status: "OnGoing" }) .eq("id", task.id); 
   if (error) { alert(error.message); return; } taskToSend.status = "OnGoing"; 
