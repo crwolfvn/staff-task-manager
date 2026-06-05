@@ -8,6 +8,7 @@ const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thàn
 const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
 const cellStyle = {border: "1px solid #ddd",padding: "8px",color: "#222",};
 const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px 24px", color: "#0066cc", cursor: "pointer",borderRadius: "8px", border: "1px solid #0066cc", backgroundColor: "white", minWidth: "120px",};
+const searchStyle = {padding: "10px",fontSize: "20px",color: "#654321", };
 
 
 function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
@@ -79,7 +80,7 @@ async function hoanThanhTask() {
   alert("Đã hoàn thành công việc");}
 
 const filteredTasks = tasks.filter((task) => {
-  const dateMatch = (task.task_date || "" ) .toLowerCase().includes( searchDate.toLowerCase()  );
+  const dateMatch = searchDate === ""? true : task.task_date === searchDate;
   const taskMatch = removeVietnameseTones(task.task_name || "").toLowerCase() .includes(removeVietnameseTones(searchTask).toLowerCase() );
   const staffMatch = searchStaff === "" ? true : task.staff === searchStaff;
   const statusMatch = searchStatus === ""? true: task.status ===searchStatus;
@@ -98,8 +99,6 @@ function createNewTask()
   const todayTasks = tasks.filter((t) => t.task_date === dateString);
     // STT tiếp theo 
   const nextTaskNo = todayTasks.length === 0 ? 1 : Math.max( ...todayTasks.map( (t) => Number(t.task_no || 0) ) ) + 1;
-
-
   setEditTask({
         task_date: dateString,
         task_no: nextTaskNo,
@@ -146,12 +145,12 @@ return (
       
       </div>
       <div style={{display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", justifyContent: "center", }}>
-        <input type="text" placeholder="Date" value={searchDate} onChange={(e) => setSearchDate( e.target.value )} style={{ padding: "8px", width: "120px", }} />
-        <input type="text" placeholder="Task" value={searchTask} onChange={(e) => setSearchTask( e.target.value ) } style={{ padding: "8px", width: "350px", }} />
-        <select value={searchStaff} onChange={(e) => setSearchStaff( e.target.value ) } style={{ padding: "8px", width: "150px", }} >
+        <input  type="date" placeholder="Date" value={searchDate} onChange={(e) => setSearchDate( e.target.value )} style={{ ...searchStyle, padding: "8px", width: "150px", }} />
+        <input  type="text" placeholder="Task" value={searchTask} onChange={(e) => setSearchTask( e.target.value ) } style={{  ...searchStyle, padding: "8px", width: "350px", }} />
+        <select  value={searchStaff} onChange={(e) => setSearchStaff( e.target.value ) } style={{  ...searchStyle, padding: "8px", width: "150px", }} >
           <option value=""> All Staff </option>
           {STAFF_LIST.map((staff) => (<option key={staff} value={staff}> {staff} </option> ))} </select>
-        <select value={searchStatus} onChange={(e) =>setSearchStatus( e.target.value ) } style={{padding: "8px", width: "150px", }} >
+        <select value={searchStatus} onChange={(e) =>setSearchStatus( e.target.value ) } style={{ ...searchStyle, padding: "8px", width: "150px", }} >
           <option value=""> All Status </option>
           {STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>
       </div>
