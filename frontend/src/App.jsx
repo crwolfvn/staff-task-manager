@@ -9,9 +9,14 @@ const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
 const cellStyle = {border: "1px solid #ddd",padding: "8px",color: "#222",};
 const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px 24px", color: "#0066cc", cursor: "pointer",borderRadius: "8px", border: "1px solid #0066cc", backgroundColor: "white", minWidth: "120px",};
 
+
+function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
+function formatDateTime(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleString( "en-GB", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", } );}
 function removeVietnameseTones(str) {  if (!str) return "";  return str    .normalize("NFD")    .replace(/[\u0300-\u036f]/g, "")    .replace(/đ/g, "d")    .replace(/Đ/g, "D");}
 
 function App() {
+  const [showAssignSelect, setShowAssignSelect] = useState(false);
+  const [assignStaff, setAssignStaff] = useState("");
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] =    useState(null);
   const [showModal, setShowModal] =    useState(false);
@@ -33,19 +38,38 @@ async function saveTask() {
   let data = {  ...editTask, };
   if ( data.status === "Done" && !data.completed_at ) {const now = new Date(); 
     data.completed_at =  now.toLocaleDateString("en-GB") +  " " +   now.getHours()+":" + String( now.getMinutes() ).padStart(2, "0");  }
-  if (data.status !== "Done" ) { data.completed_at = ""; }
+  if (data.status !== "Done" ) { data.completed_at = null; }
   if (data.id) { const { error } = await supabase  .from("tasks") .update(data).eq("id", data.id);
   if (error) { alert(error.message); return; } }  else { delete data.id; const { error } = await supabase .from("tasks") .insert([data]);
   if (error) { alert(error.message); return; }  }
     setShowModal(false);
     loadTasks(); }
-async function GiaoViec() {
-  if (!selectedTask) {alert("Vui lòng chọn công việc"); return;}
-    const taskCode = `${selectedTask.task_date}_${String(selectedTask.task_no || 0 ).padStart(2, "0")}`;
-    let message =  `📌 GIAO VIỆC: ${taskCode} \n👤 Người nhận: ${selectedTask.staff} \n📝 ${selectedTask.task_name} \n⏰ Deadline: ${selectedTask.deadline}`;
-  if ( selectedTask.note && selectedTask.note.trim() !== "") { message +=     `\n\n📎 Ghi chú:   ${selectedTask.note}`; }
-  try {  await navigator.clipboard.writeText( message ); alert( "Đã copy nội dung giao việc" ); } 
-  catch (err) {console.error(err); alert("Không thể copy nội dung" ); } }
+
+async function MessageBuild(task) { 
+  // Open -> OnGoing 
+  if (task.status === "Open") { const { error } = await supabase .from("tasks") .update({ status: "OnGoing" }) .eq("id", task.id); 
+  if (error) { alert(error.message); return; } taskToSend.status = "OnGoing"; 
+  if ( selectedTask && selectedTask.id === task.id ) { setSelectedTask(taskToSend); } await loadTasks(); }
+  // Tạo message và copy vào clipboard
+  const taskCode = `${formatDate(task.task_date)}_${String( task.task_no || 0 ).padStart(2, "0")}`; 
+  let message =`📌 GIAO VIỆC: ${taskCode}\n👤 Người nhận: ${task.staff}\n📝Công Việc: ${task.task_name}\n⏰Deadline: ${task.deadline}`; 
+    if ( task.note && task.note.trim() !== "" ) { message +=`\n\n📎 Ghi chú:${task.note}`; } 
+  try { await navigator.clipboard.writeText( message ); alert( "Đã copy nội dung giao việc" ); } 
+  catch (err) { console.error(err); alert( "Không thể copy nội dung" ); }}
+
+async function confirmAssign() { 
+  if (!assignStaff) { alert("Chọn nhân viên"); return; } const updateData = { staff: assignStaff, }; 
+  if (!selectedTask.assigned_at) { updateData.assigned_at = new Date().toISOString(); } const { error } = await supabase .from("tasks") .update(updateData) .eq("id", selectedTask.id); 
+  if (error) { alert(error.message); return; } const updatedTask = { ...selectedTask, ...updateData, }; setSelectedTask(updatedTask);await loadTasks(); 
+    setShowAssignSelect(false); setAssignStaff(""); 
+  await MessageBuild(updatedTask);}
+
+async function GiaoViec() { 
+  if (!selectedTask) { alert("Vui lòng chọn công việc"); return; } 
+  if (!selectedTask.staff) { setShowAssignSelect(true); return; } let taskToSend = { ...selectedTask }; 
+  if (!selectedTask.assigned_at) { const assignedNow = new Date().toISOString(); const { error } = await supabase .from("tasks") .update({ assigned_at: assignedNow, }) .eq("id", selectedTask.id); 
+  if (error) { alert(error.message); return; } taskToSend = { ...selectedTask, assigned_at: assignedNow, }; setSelectedTask(taskToSend); await loadTasks(); } 
+  await MessageBuild(taskToSend);}
 
 async function hoanThanhTask() { 
   if (!selectedTask) { alert("Vui lòng chọn công việc"); return; } 
@@ -66,36 +90,39 @@ const filteredTasks = tasks.filter((task) => {
       if (valueA < valueB) { return sortAsc? -1 : 1; }
       if (valueA > valueB) {return sortAsc? 1: -1; } return 0;});
 function getStatusColor(status) {switch (status) {case "Done":return "green"; case "OnGoing":return "orange";case "Cancel":return "gray";default:return "red"; }}
+
 function createNewTask() 
   {const today = new Date();
-  const dateString =String( today.getDate() ).padStart(2, "0") +"/" +String(today.getMonth() + 1).padStart(2, "0") +"/" +today.getFullYear();
+  const dateString = today.toISOString().slice(0, 10);
     // Lấy tất cả task cùng ngày
   const todayTasks = tasks.filter((t) => t.task_date === dateString);
     // STT tiếp theo 
   const nextTaskNo = todayTasks.length === 0 ? 1 : Math.max( ...todayTasks.map( (t) => Number(t.task_no || 0) ) ) + 1;
-  const AsignNow = dateString + " " + today.getHours() + ":" + String(today.getMinutes()).padStart(2, "0");
+
 
   setEditTask({
         task_date: dateString,
+        task_no: nextTaskNo,
         task_name: "",
         deadline: "",
         staff: "",
         status: "Open",
-        assigned_at: "",
-        completed_at: "",
+        assigned_at: null,
+        completed_at: null,
         note: "", });  setShowModal(true); }
 function editSelectedTask(){if (!selectedTask) { alert("Please select a task" ); return; }setEditTask({ ...selectedTask,  });setShowModal(true); }
 function clearFilters() {setSearchDate("");setSearchTask("");setSearchStaff("");setSearchStatus("");}
 function exportExcel() {
   const exportData = filteredTasks.map((t) => ({
-    Date: t.task_date,
-    "Task No": t.task_no,
-    Task: t.task_name,
-    Deadline: t.deadline,
-    Staff: t.staff,
-    Status: t.status,
-    Completed: t.completed_at,
-    Note: t.note, }));
+    task_date: t.task_date,
+    task_no: t.task_no,
+    task_name: t.task_name,
+    deadline: t.deadline,
+    staff: t.staff,
+    status: t.status,
+    assigned_at: t.assigned_at,
+    completed_at: t.completed_at,
+    note: t.note, }));
   const worksheet =XLSX.utils.json_to_sheet(exportData);
   const workbook =XLSX.utils.book_new();
   XLSX.utils.book_append_sheet( workbook, worksheet, "Tasks");
@@ -112,6 +139,11 @@ return (
         <button style={toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
         <button style={toolbarButtonStyle}onClick={clearFilters}>Clear Filter</button>
         <button style={toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
+        {showAssignSelect && ( <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "10px", }} > 
+          <select value={assignStaff} onChange={(e) => setAssignStaff(e.target.value) } > <option value=""> ChooseStaff </option> {STAFF_LIST .filter((s) => s) .map((s) => ( <option key={s} value={s} > {s} </option> ))} </select> 
+          <button style={toolbarButtonStyle} onClick={confirmAssign} > OK </button> </div>)}
+      
+      
       </div>
       <div style={{display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", justifyContent: "center", }}>
         <input type="text" placeholder="Date" value={searchDate} onChange={(e) => setSearchDate( e.target.value )} style={{ padding: "8px", width: "120px", }} />
@@ -137,12 +169,12 @@ return (
           <thead style={{ position: "sticky", top: 0, backgroundColor: "#dcdcdc", zIndex: 10, }} >
             <tr> <th style={cellStyle}>Chọn</th>
               <th style={ cellStyle } onClick={() => handleSort( "task_no" ) } > STT </th>
-              <th style={ cellStyle } onClick={() => handleSort( "task_date" ) } > Ngày </th>
+              <th style={{ ...cellStyle,minWidth: "110px" }} onClick={() => handleSort( "task_date" ) } > Ngày Tạo Task </th>
               <th style={ cellStyle } onClick={() => handleSort( "task_name" ) } > Task </th>
               <th style={ cellStyle } onClick={() => handleSort( "deadline" ) } > Deadline </th>
               <th style={ cellStyle } onClick={() => handleSort( "staff" ) } > Staff </th>
               <th style={ cellStyle } onClick={() => handleSort( "status" ) } > Status </th>	
-              <th style={ cellStyle } onClick={() => handleSort( "assigned_at" ) } > Giao Việc </th>
+              <th style={ cellStyle } onClick={() => handleSort( "assigned_at" ) } > Ngày Giao Việc </th>
               <th style={ cellStyle } onClick={() => handleSort( "completed_at" ) } > Hoàn Thành </th>
               
               <th style={ cellStyle } onClick={() => handleSort( "note" ) } > Ghi chú </th> </tr> </thead>
@@ -152,13 +184,13 @@ return (
             style={{ backgroundColor: selectedTask?.id === task.id ? "#d6ecff" : index % 2 === 0 ? "#ffffff" : "#f5f5f5", cursor: "pointer", }} > 
             <td style={ cellStyle } > <input type="radio" checked={ selectedTask?.id === task.id } readOnly /> </td> 
             <td style={ cellStyle } > {task.task_no} </td> 
-            <td style={ cellStyle } > { task.task_date } </td> 
+            <td style={ cellStyle } > {formatDate(task.task_date)} </td> 
             <td style={{ ...cellStyle, minWidth: "500px", textAlign: "left", }} > { task.task_name } </td> 
             <td style={ cellStyle } > { task.deadline } </td> 
             <td style={ cellStyle } > { task.staff } </td> 
             <td style={{ ...cellStyle, fontWeight: "bold", color: getStatusColor( task.status ), }} > { task.status } </td> 
-            <td style={ cellStyle } > { task.assigned_at } </td> 
-            <td style={ cellStyle } > { task.completed_at } </td> 
+            <td style={ cellStyle } > { formatDateTime(task.assigned_at) } </td> 
+            <td style={ cellStyle } > { formatDateTime(task.completed_at) } </td> 
             <td style={{ ...cellStyle, minWidth: "400px", textAlign: "left", }} > {task.note} </td> </tr> ) )}  </tbody> </table>
       </div>
       <TaskModal show={showModal} title={ editTask.id ? "Edit Task" : "New Task" } task={editTask} setTask={setEditTask} onSave={saveTask} onClose={() => setShowModal(false) } staffOptions={ STAFF_LIST } />
