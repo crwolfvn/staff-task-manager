@@ -42,6 +42,9 @@ async function saveTask() {
   let data = {  ...editTask, };
   if (data.status === "Done" && !data.completed_at) {data.completed_at = getVNDateTime();}
   if (data.status !== "Done" ) { data.completed_at = null; }
+  if (data.assigned_at === "") { data.assigned_at = null;}
+  if (data.completed_at === "") { data.completed_at = null;}
+  if (data.status !== "Done") {data.completed_at = null;}
   if (data.id) { const { error } = await supabase  .from("tasks") .update(data).eq("id", data.id);
   if (error) { alert(error.message); return; } }  else { delete data.id; const { error } = await supabase .from("tasks") .insert([data]);
   if (error) { alert(error.message); return; }  }
@@ -135,7 +138,7 @@ function exportExcel() {
 // Return : Bắt đầu từ đây sẽ là giao diên
 return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
-      <h1 style={{ textAlign: "center", }} > Task Manager v0.7  </h1> 
+      <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
       <div  style={{display: "flex", gap: "5px", justifyContent: "center", marginBottom: "5px", }} >
         <button style={toolbarButtonStyle}onClick={loadTasks}> Reload</button>
         <button style={toolbarButtonStyle}onClick={createNewTask}> New</button>

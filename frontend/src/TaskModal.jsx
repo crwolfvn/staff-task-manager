@@ -36,7 +36,10 @@ export default function TaskModal({
         
           <label style={{fontSize: "25px"}} >Ngày Giao</label>
           <input value={task.assigned_at || ""}  style={{fontSize: "25px"}} onChange={(e) => setTask({ ...task, assigned_at: e.target.value, }) } />
-          
+
+          <label style={{fontSize: "25px"}}>Hoàn Thành</label>
+          <input value={task.completed_at || ""} style={{fontSize: "25px"}} onChange={(e) => setTask({ ...task, completed_at: e.target.value, }) } />
+
           <label style={{fontSize: "25px"}} >Note</label>
           <textarea rows="4"  style={{fontSize: "25px"}} value={task.note || ""} onChange={(e) => setTask({ ...task, note: e.target.value, }) } />
         
