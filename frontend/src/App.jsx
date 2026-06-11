@@ -10,10 +10,11 @@ const cellStyle = {border: "1px solid #ddd",padding: "8px",color: "#222",};
 const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px 24px", color: "#0066cc", cursor: "pointer",borderRadius: "8px", border: "1px solid #0066cc", backgroundColor: "white", minWidth: "120px",};
 const searchStyle = {padding: "10px",fontSize: "20px",color: "#654321", };
 
-
+function getVNDateTime() { return new Date() .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", }) .replace(" ", "T");}
 function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
 function formatDateTime(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleString( "en-GB", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", } );}
 function removeVietnameseTones(str) {  if (!str) return "";  return str    .normalize("NFD")    .replace(/[\u0300-\u036f]/g, "")    .replace(/đ/g, "d")    .replace(/Đ/g, "D");}
+
 
 function App() {
   const [showAssignSelect, setShowAssignSelect] = useState(false);
@@ -35,10 +36,10 @@ async function loadTasks() {
   const { data, error } = await supabase  .from("tasks") .select("*");
   if (error) { console.error(error); return; }setTasks(data || []); }
 function handleSort(field) {if (sortField === field) { setSortAsc(!sortAsc); } else { setSortField(field); setSortAsc(true);} }
+
 async function saveTask() {
   let data = {  ...editTask, };
-  if ( data.status === "Done" && !data.completed_at ) {const now = new Date(); 
-    data.completed_at =  now.toLocaleDateString("en-GB") +  " " +   now.getHours()+":" + String( now.getMinutes() ).padStart(2, "0");  }
+  if (data.status === "Done" && !data.completed_at) {data.completed_at = getVNDateTime();}
   if (data.status !== "Done" ) { data.completed_at = null; }
   if (data.id) { const { error } = await supabase  .from("tasks") .update(data).eq("id", data.id);
   if (error) { alert(error.message); return; } }  else { delete data.id; const { error } = await supabase .from("tasks") .insert([data]);
@@ -60,7 +61,7 @@ async function MessageBuild(task) { let taskToSend = { ...task };
 
 async function confirmAssign() { 
   if (!assignStaff) { alert("Chọn nhân viên"); return; } const updateData = { staff: assignStaff, }; 
-  if (!selectedTask.assigned_at) { updateData.assigned_at = new Date().toISOString(); } const { error } = await supabase .from("tasks") .update(updateData) .eq("id", selectedTask.id); 
+  if (!selectedTask.assigned_at) { updateData.assigned_at = getVNDateTime();} const { error } = await supabase .from("tasks") .update(updateData) .eq("id", selectedTask.id); 
   if (error) { alert(error.message); return; } const updatedTask = { ...selectedTask, ...updateData, }; setSelectedTask(updatedTask);await loadTasks(); 
     setShowAssignSelect(false); setAssignStaff(""); 
   await MessageBuild(updatedTask);}
@@ -68,13 +69,15 @@ async function confirmAssign() {
 async function GiaoViec() { 
   if (!selectedTask) { alert("Vui lòng chọn công việc"); return; } 
   if (!selectedTask.staff) { setShowAssignSelect(true); return; } let taskToSend = { ...selectedTask }; 
-  if (!selectedTask.assigned_at) { const assignedNow = new Date().toISOString(); const { error } = await supabase .from("tasks") .update({ assigned_at: assignedNow, }) .eq("id", selectedTask.id); 
+  if (!selectedTask.assigned_at) { const assignedNow = getVNDateTime();  const { error } = await supabase .from("tasks") .update({ assigned_at: assignedNow, }) .eq("id", selectedTask.id); 
   if (error) { alert(error.message); return; } taskToSend = { ...selectedTask, assigned_at: assignedNow, }; setSelectedTask(taskToSend); await loadTasks(); } 
   await MessageBuild(taskToSend);}
 
+  
+
 async function hoanThanhTask() { 
   if (!selectedTask) { alert("Vui lòng chọn công việc"); return; } 
-  const now = new Date(); const completedAt = now.toLocaleDateString("en-GB") + " " + now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0"); 
+  const completedAt = getVNDateTime();
   const { error } = await supabase .from("tasks") .update({ status: "Done", completed_at: completedAt, }) .eq("id", selectedTask.id); 
   if (error) { alert(error.message); return; } await loadTasks(); setSelectedTask({ ...selectedTask, status: "Done", completed_at: completedAt, }); 
   alert("Đã hoàn thành công việc");}
