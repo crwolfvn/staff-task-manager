@@ -4,6 +4,7 @@ import TaskModal from "./TaskModal";
 import TaskCard from "./TaskCard";
 import * as XLSX from "xlsx";
 import TaskTable from "./TaskTable";
+import TTKPI from "./TTKPI";
 
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
@@ -13,7 +14,6 @@ const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px
 const searchStyle = {padding: "10px",fontSize: "20px",color: "#654321", };
 const mobileButtonStyle = { ...toolbarButtonStyle, minWidth: "90px", fontSize: "16px", padding: "10px",};
 
-
 function getVNDateTime() { return new Date() .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", }) .replace(" ", "T");}
 function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
 function formatDateTime(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleString( "en-GB", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", } );}
@@ -21,11 +21,16 @@ function removeVietnameseTones(str) {  if (!str) return "";  return str    .norm
 
 
 function App() {
+  const [tasks, setTasks] = useState([]);
+  const openCount =tasks.filter(t => t.status === "Open").length;
+  const onGoingCount =tasks.filter(t => t.status === "OnGoing").length;
+  const doneCount =tasks.filter(t => t.status === "Done").length;
+  const cancelCount =tasks.filter(t => t.status === "Cancel").length;
+  const completionRate =tasks.length === 0    ? 0: Math.round(doneCount * 100 / tasks.length);
   const [showFilter, setShowFilter] = useState(false);
   const [showAssignSelect, setShowAssignSelect] = useState(false);
   const [assignStaff, setAssignStaff] = useState("");
-  const [tasks, setTasks] = useState([]);
-  const [selectedTask, setSelectedTask] =    useState(null);
+    const [selectedTask, setSelectedTask] =    useState(null);
   const [showModal, setShowModal] =    useState(false);
   const [editTask, setEditTask] =    useState({});
   const [searchDate, setSearchDate] =    useState("");
@@ -145,6 +150,11 @@ function exportExcel() {
 return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
       <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
+      <TTKPI  openCount={openCount}
+          onGoingCount={onGoingCount}
+          doneCount={doneCount}
+          cancelCount={cancelCount}
+          completionRate={completionRate}/>
       <div  style={{display: "flex", gap: "5px", justifyContent: "center", marginBottom: "5px", }} >
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={loadTasks}> Reload</button>
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={createNewTask}> New</button>
