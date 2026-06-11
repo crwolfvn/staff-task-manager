@@ -19,8 +19,9 @@ Title của Webpage được chỉnh ở file index.html
 
 4. Cách lệnh thường dùng
 a. Commit công việc đang làm để tạm dừng 
+
 git add .
-git commit -m "V0.7 checkpoint - export excel and assigned_at"
+git commit -m "V0.7 Comment something"
 git push
 
 
@@ -34,8 +35,8 @@ Move về branch cũ: git checkout version123
 
 
 c. Tạo tag  (verson) mới để dễ dàng quay lại cũng như để publish
-git tag v0.70
-git push origin v0.70
+git tag -a v0.7.Final -m "Production Release V0.7 Final"
+git push origin v0.7.Final
 
 d. Run chế độ dev
 npm run dev
@@ -44,4 +45,16 @@ e. Build and Deploy app
 npm run build
 npm run deply
 
+f. Tổng hợp code cập nhật website
+  git add .
+  git commit -m "V0.7 Final Production Release"
+  git push
+  
+  git tag -a v0.7.Final -m "Production Release V0.7 Final"
+  git push origin v0.7.Final
+  
+  cd frontend
+  npm run deploy
+
+g. abc  
 
