@@ -38,18 +38,21 @@ async function loadTasks() {
 function handleSort(field) {if (sortField === field) { setSortAsc(!sortAsc); } else { setSortField(field); setSortAsc(true);} }
 
 async function saveTask() {
-  const taskNameInput =  document.getElementById("task_name");if (taskNameInput) {  editTask.task_name =    taskNameInput.value;}
-  let data = {  ...editTask, };
-  if (data.status === "Done" && !data.completed_at) {data.completed_at = getVNDateTime();}
-  if (data.status !== "Done" ) { data.completed_at = null; }
-  if (data.assigned_at === "") { data.assigned_at = null;}
-  if (data.completed_at === "") { data.completed_at = null;}
-  if (data.status !== "Done") {data.completed_at = null;}
-  if (data.id) { const { error } = await supabase  .from("tasks") .update(data).eq("id", data.id);
-  if (error) { alert(error.message); return; } }  else { delete data.id; const { error } = await supabase .from("tasks") .insert([data]);
-  if (error) { alert(error.message); return; }  }
-    setShowModal(false);
-    loadTasks(); }
+// Lấy Task Name từ textarea
+  const taskNameInput =document.getElementById("task_name");
+  let data = {...editTask,task_name: taskNameInput? taskNameInput.value: editTask.task_name,};
+  if (data.assigned_at === "") {data.assigned_at = null;}
+  if (data.completed_at === "") {data.completed_at = null;}
+  if (data.status === "Done" &&!data.completed_at) {data.completed_at = getVNDateTime();} // Nếu Done mà chưa có completed_at
+  if (data.status !== "Done") {data.completed_at = null;} // Nếu không phải Done thì xóa completed_at
+  if (data.id) {const { error } = await supabase.from("tasks").update(data).eq("id", data.id);if (error) {alert(error.message);return;}} // EDIT TASK
+  else {delete data.id; // NEW TASK
+// Reload task cùng ngày để tránh trùng STT :
+    const {data: latestTasks,error: loadError,} = await supabase.from("tasks").select("task_no").eq("task_date", data.task_date); if (loadError) {alert(loadError.message);return;} 
+    const maxTaskNo =latestTasks.length === 0? 0: Math.max(...latestTasks.map((t) => Number(t.task_no || 0)));
+    data.task_no = maxTaskNo + 1; const { error } = await supabase.from("tasks").insert([data]);if (error) {alert(error.message);return;}}
+  setShowModal(false);
+  await loadTasks();}
 
 async function MessageBuild(task) { let taskToSend = { ...task };
   // Open -> OnGoing 
@@ -104,11 +107,9 @@ function createNewTask()
   const dateString = today.toISOString().slice(0, 10);
     // Lấy tất cả task cùng ngày
   const todayTasks = tasks.filter((t) => t.task_date === dateString);
-    // STT tiếp theo 
-  const nextTaskNo = todayTasks.length === 0 ? 1 : Math.max( ...todayTasks.map( (t) => Number(t.task_no || 0) ) ) + 1;
   setEditTask({
         task_date: dateString,
-        task_no: nextTaskNo,
+        task_no: "",
         task_name: "",
         deadline: "",
         staff: "",
