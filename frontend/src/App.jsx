@@ -3,12 +3,16 @@ import { supabase } from "./supabase";
 import TaskModal from "./TaskModal";
 import TaskCard from "./TaskCard";
 import * as XLSX from "xlsx";
+import TaskTable from "./TaskTable";
+
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
 const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
 const cellStyle = {border: "1px solid #ddd",padding: "8px",color: "#222",};
 const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px 24px", color: "#0066cc", cursor: "pointer",borderRadius: "8px", border: "1px solid #0066cc", backgroundColor: "white", minWidth: "120px",};
 const searchStyle = {padding: "10px",fontSize: "20px",color: "#654321", };
+const mobileButtonStyle = { ...toolbarButtonStyle, minWidth: "90px", fontSize: "16px", padding: "10px",};
+
 
 function getVNDateTime() { return new Date() .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", }) .replace(" ", "T");}
 function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
@@ -17,6 +21,7 @@ function removeVietnameseTones(str) {  if (!str) return "";  return str    .norm
 
 
 function App() {
+  const [showFilter, setShowFilter] = useState(false);
   const [showAssignSelect, setShowAssignSelect] = useState(false);
   const [assignStaff, setAssignStaff] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -141,17 +146,18 @@ return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
       <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
       <div  style={{display: "flex", gap: "5px", justifyContent: "center", marginBottom: "5px", }} >
-        <button style={toolbarButtonStyle}onClick={loadTasks}> Reload</button>
-        <button style={toolbarButtonStyle}onClick={createNewTask}> New</button>
-        <button style={toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
-        <button style={toolbarButtonStyle}onClick={clearFilters}>Clear Filter</button>
-        <button style={toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={loadTasks}> Reload</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={createNewTask}> New</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={clearFilters}>Clear Filter</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
         {showAssignSelect && ( <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "10px", }} > 
           <select value={assignStaff} onChange={(e) => setAssignStaff(e.target.value) } > <option value=""> ChooseStaff </option> {STAFF_LIST .filter((s) => s) .map((s) => ( <option key={s} value={s} > {s} </option> ))} </select> 
-          <button style={toolbarButtonStyle} onClick={confirmAssign} > OK </button> </div>)}
+          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={confirmAssign} > OK </button> </div>)}
       
       
       </div>
+      {showFilter && (
       <div style={{display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap", justifyContent: "center", }}>
         <input  type="date" placeholder="Date" value={searchDate} onChange={(e) => setSearchDate( e.target.value )} style={{ ...searchStyle, padding: "8px", width: "150px", }} />
         <input  type="text" placeholder="Task" value={searchTask} onChange={(e) => setSearchTask( e.target.value ) } style={{  ...searchStyle, padding: "8px", width: "350px", }} />
@@ -160,46 +166,47 @@ return (
           {STAFF_LIST.map((staff) => (<option key={staff} value={staff}> {staff} </option> ))} </select>
         <select value={searchStatus} onChange={(e) =>setSearchStatus( e.target.value ) } style={{ ...searchStyle, padding: "8px", width: "150px", }} >
           <option value=""> All Status </option>
-          {STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>
-      </div>
+          {STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>      </div> )}
+
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap",justifyContent: "center", }}>
-        <button style={toolbarButtonStyle} onClick={hoanThanhTask} >Hoàn Thành</button>
-        <button style={toolbarButtonStyle}>****</button>
-        <button style={toolbarButtonStyle}>****</button>
-        <button style={toolbarButtonStyle}>****</button>
-        <button style={toolbarButtonStyle} onClick={exportExcel} > Export Excel </button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={hoanThanhTask} >Hoàn Thành</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={() => setShowFilter(!showFilter)}>{showFilter ? "Hide Filter" : "Filter"} </button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={exportExcel} > Export Excel </button>
       </div>
       <p style={{ textAlign: "center", fontWeight: "bold", color: "#0066cc", }} > Selected Row: {" "} {selectedTask ? selectedTask.task_name : "None"} </p>
       <p style={{ textAlign: "center", fontSize: "20px", }} > Total Tasks: {" "} { filteredTasks.length } {" / "} {tasks.length} </p>
-      <div style={{ maxWidth: "100%", maxHeight: "700px", overflow: "auto", border: "1px solid #ccc", backgroundColor: "white", }} >
-        <table style={{ minWidth: "99%", borderCollapse: "collapse", color: "#222", }} >
-          <thead style={{ position: "sticky", top: 0, backgroundColor: "#dcdcdc", zIndex: 10, }} >
-            <tr> <th style={cellStyle}>Chọn</th>
-              <th style={ cellStyle } onClick={() => handleSort( "task_no" ) } > STT </th>
-              <th style={{ ...cellStyle,minWidth: "110px" }} onClick={() => handleSort( "task_date" ) } > Ngày Tạo Task </th>
-              <th style={ cellStyle } onClick={() => handleSort( "task_name" ) } > Task </th>
-              <th style={ cellStyle } onClick={() => handleSort( "deadline" ) } > Deadline </th>
-              <th style={ cellStyle } onClick={() => handleSort( "staff" ) } > Staff </th>
-              <th style={ cellStyle } onClick={() => handleSort( "status" ) } > Status </th>	
-              <th style={ cellStyle } onClick={() => handleSort( "assigned_at" ) } > Ngày Giao Việc </th>
-              <th style={ cellStyle } onClick={() => handleSort( "completed_at" ) } > Hoàn Thành </th>
-              
-              <th style={ cellStyle } onClick={() => handleSort( "note" ) } > Ghi chú </th> </tr> </thead>
-              
-          <tbody>{filteredTasks.map(
-            (task,index) => (<tr key={task.id}onClick={() =>setSelectedTask(selectedTask?.id === task.id ? null : task )} 
-            style={{ backgroundColor: selectedTask?.id === task.id ? "#d6ecff" : index % 2 === 0 ? "#ffffff" : "#f5f5f5", cursor: "pointer", }} > 
-            <td style={ cellStyle } > <input type="radio" checked={ selectedTask?.id === task.id } readOnly /> </td> 
-            <td style={ cellStyle } > {task.task_no} </td> 
-            <td style={ cellStyle } > {formatDate(task.task_date)} </td> 
-            <td style={{ ...cellStyle, minWidth: "500px", textAlign: "left", }} > { task.task_name } </td> 
-            <td style={ cellStyle } > { task.deadline } </td> 
-            <td style={ cellStyle } > { task.staff } </td> 
-            <td style={{ ...cellStyle, fontWeight: "bold", color: getStatusColor( task.status ), }} > { task.status } </td> 
-            <td style={ cellStyle } > { formatDateTime(task.assigned_at) } </td> 
-            <td style={ cellStyle } > { formatDateTime(task.completed_at) } </td> 
-            <td style={{ ...cellStyle, minWidth: "400px", textAlign: "left", }} > {task.note} </td> </tr> ) )}  </tbody> </table>
-      </div>
+      
+
+      {isMobile ? (
+
+  <TaskCard
+    filteredTasks={filteredTasks}
+    selectedTask={selectedTask}
+    setSelectedTask={setSelectedTask}/> ) : (
+  <div
+    style={{
+      maxWidth: "100%",
+      maxHeight: "700px",
+      overflow: "auto",
+      border: "1px solid #ccc",
+      backgroundColor: "white",}}>
+
+    <TaskTable
+      filteredTasks={filteredTasks}
+      selectedTask={selectedTask}
+      setSelectedTask={setSelectedTask}
+      handleSort={handleSort}
+      cellStyle={cellStyle}
+      formatDate={formatDate}
+      formatDateTime={formatDateTime}
+      getStatusColor={getStatusColor}
+    />
+  </div>
+
+)} 
+
       <TaskModal show={showModal} title={ editTask.id ? "Edit Task" : "New Task" } task={editTask} setTask={setEditTask} onSave={saveTask} onClose={() => setShowModal(false) } staffOptions={ STAFF_LIST } />
     </div>
   );
