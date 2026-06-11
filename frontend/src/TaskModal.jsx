@@ -18,7 +18,7 @@ export default function TaskModal({
           <input type="date" value={task.task_date || ""} style={{fontSize: "25px"}} onChange={(e) => setTask({ ...task, task_date: e.target.value,})}/>
           
           <label style={{fontSize: "25px"}} >Task</label>
-          <textarea rows="3" value={task.task_name || ""} style={{fontSize: "25px"}}  onChange={(e) => setTask({ ...task, task_name: e.target.value, }) } />
+          <textarea rows="4" style={{fontSize: "25px"}} defaultValue={task.task_name || ""} id="task_name"/>
 
           <label style={{fontSize: "25px"}} >Deadline</label>
           <input value={task.deadline || ""}  style={{fontSize: "25px"}} onChange={(e) => setTask({ ...task, deadline: e.target.value, }) } />
@@ -44,4 +44,4 @@ export default function TaskModal({
 
         <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "flex-end", }} >
           <button style={{fontSize: "25px"}} onClick={onClose}> Cancel  </button>
-          <button style={{fontSize: "25px"}} onClick={onSave}>  Save </button>   </div> </div> </div> ); } 
+          <button style={{fontSize: "25px"}} onClick={onSave}> Save</button>   </div> </div> </div> ); } 

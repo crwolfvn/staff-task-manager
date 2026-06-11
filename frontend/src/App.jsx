@@ -38,6 +38,7 @@ async function loadTasks() {
 function handleSort(field) {if (sortField === field) { setSortAsc(!sortAsc); } else { setSortField(field); setSortAsc(true);} }
 
 async function saveTask() {
+  const taskNameInput =  document.getElementById("task_name");if (taskNameInput) {  editTask.task_name =    taskNameInput.value;}
   let data = {  ...editTask, };
   if (data.status === "Done" && !data.completed_at) {data.completed_at = getVNDateTime();}
   if (data.status !== "Done" ) { data.completed_at = null; }
