@@ -5,7 +5,7 @@ import TaskCard from "./TaskCard";
 import * as XLSX from "xlsx";
 import TaskTable from "./TaskTable";
 import TTKPI from "./TTKPI";
-
+import TTHeader from "./TTHeader";
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
 const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
@@ -22,15 +22,10 @@ function removeVietnameseTones(str) {  if (!str) return "";  return str    .norm
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const openCount =tasks.filter(t => t.status === "Open").length;
-  const onGoingCount =tasks.filter(t => t.status === "OnGoing").length;
-  const doneCount =tasks.filter(t => t.status === "Done").length;
-  const cancelCount =tasks.filter(t => t.status === "Cancel").length;
-  const completionRate =tasks.length === 0    ? 0: Math.round(doneCount * 100 / tasks.length);
   const [showFilter, setShowFilter] = useState(false);
   const [showAssignSelect, setShowAssignSelect] = useState(false);
   const [assignStaff, setAssignStaff] = useState("");
-    const [selectedTask, setSelectedTask] =    useState(null);
+  const [selectedTask, setSelectedTask] =    useState(null);
   const [showModal, setShowModal] =    useState(false);
   const [editTask, setEditTask] =    useState({});
   const [searchDate, setSearchDate] =    useState("");
@@ -39,8 +34,22 @@ function App() {
   const [searchStatus, setSearchStatus] =    useState("");
   const [sortField, setSortField] =    useState("id");
   const [sortAsc, setSortAsc] =    useState(false);
+  const [currentUser, setCurrentUser] =useState(null);
+
   const isMobile = window.innerWidth < 768;
-  useEffect(() => {  loadTasks();  }, []);
+  const openCount =tasks.filter(t => t.status === "Open").length;
+  const onGoingCount =tasks.filter(t => t.status === "OnGoing").length;
+  const doneCount =tasks.filter(t => t.status === "Done").length;
+  const cancelCount =tasks.filter(t => t.status === "Cancel").length;
+  const completionRate =tasks.length === 0    ? 0: Math.round(doneCount * 100 / tasks.length);
+  
+  useEffect(() => {const savedUser =localStorage.getItem("currentUser"); if (savedUser) {setCurrentUser(savedUser);}loadTasks();}, []);
+
+function login() { const username = prompt("Username"); const password = prompt("Password"); 
+  if ( username === "admin" && password === "123456" ) { localStorage.setItem( "currentUser", username ); setCurrentUser(username); } 
+  else { alert("Login failed"); }}
+
+function logout() {localStorage.removeItem("currentUser");setCurrentUser(null);}
 
 async function loadTasks() { 
   const { data, error } = await supabase  .from("tasks") .select("*");
@@ -116,7 +125,7 @@ function createNewTask()
   {const today = new Date();
   const dateString = today.toISOString().slice(0, 10);
     // Lấy tất cả task cùng ngày
-  const todayTasks = tasks.filter((t) => t.task_date === dateString);
+  
   setEditTask({
         task_date: dateString,
         task_no: "",
@@ -149,6 +158,7 @@ function exportExcel() {
 // Return : Bắt đầu từ đây sẽ là giao diên
 return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
+      <TTHeader currentUser={currentUser} onLogin={login} onLogout={logout} />
       <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
       <TTKPI  openCount={openCount}
           onGoingCount={onGoingCount}
@@ -156,15 +166,14 @@ return (
           cancelCount={cancelCount}
           completionRate={completionRate}/>
       <div  style={{display: "flex", gap: "5px", justifyContent: "center", marginBottom: "5px", }} >
+       
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={loadTasks}> Reload</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={createNewTask}> New</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={() => setShowFilter(!showFilter)}>{showFilter ? "Hide Filter" : "Filter"} </button>
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={clearFilters}>Clear Filter</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
-        {showAssignSelect && ( <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "10px", }} > 
-          <select value={assignStaff} onChange={(e) => setAssignStaff(e.target.value) } > <option value=""> ChooseStaff </option> {STAFF_LIST .filter((s) => s) .map((s) => ( <option key={s} value={s} > {s} </option> ))} </select> 
-          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={confirmAssign} > OK </button> </div>)}
-      
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={exportExcel} > Export Excel </button>
+              
       
       </div>
       {showFilter && (
@@ -172,20 +181,23 @@ return (
         <input  type="date" placeholder="Date" value={searchDate} onChange={(e) => setSearchDate( e.target.value )} style={{ ...searchStyle, padding: "8px", width: "150px", }} />
         <input  type="text" placeholder="Task" value={searchTask} onChange={(e) => setSearchTask( e.target.value ) } style={{  ...searchStyle, padding: "8px", width: "350px", }} />
         <select  value={searchStaff} onChange={(e) => setSearchStaff( e.target.value ) } style={{  ...searchStyle, padding: "8px", width: "150px", }} >
-          <option value=""> All Staff </option>
-          {STAFF_LIST.map((staff) => (<option key={staff} value={staff}> {staff} </option> ))} </select>
+          <option value=""> All Staff </option> {STAFF_LIST.map((staff) => (<option key={staff} value={staff}> {staff} </option> ))} </select>
         <select value={searchStatus} onChange={(e) =>setSearchStatus( e.target.value ) } style={{ ...searchStyle, padding: "8px", width: "150px", }} >
-          <option value=""> All Status </option>
-          {STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>      </div> )}
+          <option value=""> All Status </option>{STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>      </div> )} 
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap",justifyContent: "center", }}>
+        {currentUser && ( <> 
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={createNewTask}> New</button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={hoanThanhTask} >Hoàn Thành</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={() => setShowFilter(!showFilter)}>{showFilter ? "Hide Filter" : "Filter"} </button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}>****</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={exportExcel} > Export Excel </button>
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
+          {showAssignSelect && ( 
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "10px", }} > 
+          <select value={assignStaff} onChange={(e) => setAssignStaff(e.target.value) } > <option value=""> ChooseStaff </option> {STAFF_LIST .filter((s) => s) .map((s) => ( <option key={s} value={s} > {s} </option> ))} </select> 
+          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={confirmAssign} > OK </button>  </div>  )}   </>)}
+ 
       </div>
-      <p style={{ textAlign: "center", fontWeight: "bold", color: "#0066cc", }} > Selected Row: {" "} {selectedTask ? selectedTask.task_name : "None"} </p>
+      <p style={{ textAlign: "center", fontWeight: "bold", color: "#0066cc", }} > Selected Row: {" "} {selectedTask ? selectedTask.task_date : "None"} {"_"}{selectedTask ? selectedTask.task_no : "None"} {"="} {selectedTask ? selectedTask.task_name : "None"} </p>
       <p style={{ textAlign: "center", fontSize: "20px", }} > Total Tasks: {" "} { filteredTasks.length } {" / "} {tasks.length} </p>
       
 

@@ -1,3 +1,4 @@
+// TaskCard.jsx
 function getStatusColor(status) { switch (status) { case "Done": return "green"; case "OnGoing": return "orange"; case "Cancel": return "gray"; default: return "red"; }}
 export default function TaskCard({
   filteredTasks,
@@ -18,7 +19,8 @@ export default function TaskCard({
               fontWeight: "bold",
               fontSize: "18px",
               marginBottom: "8px",}}>{task.task_name}</div>
-      <div> 📅 {task.task_date} </div>
+      <div> 📅 {new Date(task.task_date).toLocaleDateString("en-GB")} </div>
+      <div style={{ fontSize: "13px", color: "#666", marginBottom: "5px", }}> #{task.task_no}</div>
       <div> 👤 {task.staff} </div>
       <div> ⏰ {task.deadline}</div>
       <div style={{color: getStatusColor(task.status),fontWeight: "bold",marginTop: "6px",}}>● {task.status}</div>
