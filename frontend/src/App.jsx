@@ -7,6 +7,8 @@ import TaskTable from "./TaskTable";
 import TTKPI from "./TTKPI";
 import TTHeader from "./TTHeader";
 import TTLoginModal from "./TTLoginModal";
+import TTChangePasswordModal from "./TTChangePasswordModal";
+
 import {  saveSession,  clearSession, loadSession, } from "./auth";
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
@@ -40,7 +42,9 @@ function App() {
   const [currentUser, setCurrentUser] =useState(null);
   const [showLoginModal, setShowLoginModal] =useState(false);
   const [currentRole, setCurrentRole] =useState("Guest");
-  
+  const [showChangePassword, setShowChangePassword  ] = useState(false); 
+  const [currentStaff, setCurrentStaff] = useState("");
+
   const isMobile = window.innerWidth < 768;
   const openCount =tasks.filter(t => t.status === "Open").length;
   const onGoingCount =tasks.filter(t => t.status === "OnGoing").length;
@@ -50,9 +54,9 @@ function App() {
   const isAdmin = currentRole === "Admin";
   const isStaff = currentRole === "Staff";
   
-  useEffect(() => {const session = loadSession();if (session.user) { setCurrentUser( session.user ); setCurrentRole( session.role );}
-    if (savedUser) {setCurrentUser(savedUser);setCurrentRole("Admin");
-    }loadTasks();}, []);
+  useEffect(() => { const session = loadSession(); 
+    if (session.user) { setCurrentUser(session.user); setCurrentRole(session.role); } 
+    loadTasks();}, []);
 
 async function login() { 
   const username = document.getElementById("login_user")?.value; 
@@ -60,9 +64,21 @@ async function login() {
   const { data, error } = await supabase .from("users") .select("*") .eq("username", username) .eq("password_hash", password) .single(); 
     console.log("LOGIN RESULT:", data);  console.log("LOGIN ERROR :", error);
     if (error || !data) { alert("Login failed"); 
-    return; } saveSession( data.username, data.role ); setCurrentUser(data.username); setCurrentRole(data.role); setShowLoginModal(false);}
+    return; } saveSession( data.username, data.role ); setCurrentUser(data.username); setCurrentRole(data.role); setCurrentStaff(data.staff_name); setShowLoginModal(false);
+    if (data.role === "Staff") {setSearchStaff(data.staff_name);}}
 
 function logout() {clearSession(); setCurrentUser(null);   setCurrentRole("Guest"); }
+
+async function changePassword() { 
+  const oldPassword = document.getElementById( "old_password" )?.value; 
+  const newPassword = document.getElementById( "new_password" )?.value; 
+  const confirmPassword = document.getElementById( "confirm_password" )?.value; 
+  if ( newPassword !== confirmPassword ) { alert( "Confirm password mismatch" );return; } 
+    const { data } = await supabase .from("users") .select("*") .eq( "username", currentUser ) .single(); 
+  if ( !data || data.password_hash !== oldPassword ) { alert( "Old password incorrect" ); return; } 
+    const { error } = await supabase .from("users") .update({ password_hash: newPassword, }) .eq( "username", currentUser ); 
+  if (error) { alert(error.message); return; } alert( "Password updated" ); setShowChangePassword( false );}
+
 
 async function loadTasks() { 
   const { data, error } = await supabase  .from("tasks") .select("*");
@@ -173,7 +189,7 @@ function exportExcel() {
 // Return : Bắt đầu từ đây sẽ là giao diên
 return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
-      <TTHeader currentUser={currentUser} onLogin={() => setShowLoginModal(true)} onLogout={logout}/>
+      <TTHeader currentUser={currentUser} currentRole={currentRole} onLogin={() => setShowLoginModal(true) } onLogout={logout} onChangePassword={() => setShowChangePassword(true) }/>
       <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
       <TTKPI  openCount={openCount}
           onGoingCount={onGoingCount}
@@ -240,6 +256,8 @@ return (
   show={showLoginModal}
   onLogin={login}
   onClose={() => setShowLoginModal(false)} />
+
+<TTChangePasswordModal show={showChangePassword} onClose={() => setShowChangePassword(false) } onSave={changePassword}/>
 
  <TaskModal show={showModal} title={ editTask.id ? "Edit Task" : "New Task" } task={editTask} setTask={setEditTask} onSave={saveTask} onClose={() => setShowModal(false) } staffOptions={ STAFF_LIST } />
     </div> ); }

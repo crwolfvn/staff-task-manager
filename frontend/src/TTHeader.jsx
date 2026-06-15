@@ -1,7 +1,9 @@
 export default function TTHeader({
   currentUser,
   onLogin,
-  onLogout,}) {
+  onLogout,
+  onChangePassword
+,}) {
 
   return (
     <div style={{
@@ -15,6 +17,6 @@ export default function TTHeader({
         borderRadius: "8px",}}>
         <div> {currentUser? `👤 Welcome, ${currentUser}`: "👤 Guest"}</div>
         <div style={{ display: "flex", gap: "10px" }}>  {!currentUser ? (<button onClick={onLogin}> Login</button>
-        ) : (
-        <> <button> Change Password </button>
+        ) : (<> 
+        <button onClick={onChangePassword} > Change Password </button>
         <button onClick={onLogout}> Logout </button> </> )} </div> </div> ); }
