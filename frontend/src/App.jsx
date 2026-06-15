@@ -7,6 +7,7 @@ import TaskTable from "./TaskTable";
 import TTKPI from "./TTKPI";
 import TTHeader from "./TTHeader";
 import TTLoginModal from "./TTLoginModal";
+import {  saveSession,  clearSession, loadSession, } from "./auth";
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
 const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
@@ -14,6 +15,7 @@ const cellStyle = {border: "1px solid #ddd",padding: "8px",color: "#222",};
 const toolbarButtonStyle = {fontSize: "18px", fontWeight: "bold", padding: "12px 24px", color: "#0066cc", cursor: "pointer",borderRadius: "8px", border: "1px solid #0066cc", backgroundColor: "white", minWidth: "120px",};
 const searchStyle = {padding: "10px",fontSize: "20px",color: "#654321", };
 const mobileButtonStyle = { ...toolbarButtonStyle, minWidth: "90px", fontSize: "16px", padding: "10px",};
+
 
 function getVNDateTime() { return new Date() .toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh", }) .replace(" ", "T");}
 function formatDate(dateStr) { if (!dateStr) return ""; const d = new Date(dateStr); return d.toLocaleDateString("en-GB");}
@@ -37,7 +39,7 @@ function App() {
   const [sortAsc, setSortAsc] =    useState(false);
   const [currentUser, setCurrentUser] =useState(null);
   const [showLoginModal, setShowLoginModal] =useState(false);
-  
+  const [currentRole, setCurrentRole] =useState("Guest");
   
   const isMobile = window.innerWidth < 768;
   const openCount =tasks.filter(t => t.status === "Open").length;
@@ -45,16 +47,22 @@ function App() {
   const doneCount =tasks.filter(t => t.status === "Done").length;
   const cancelCount =tasks.filter(t => t.status === "Cancel").length;
   const completionRate =tasks.length === 0    ? 0: Math.round(doneCount * 100 / tasks.length);
+  const isAdmin = currentRole === "Admin";
+  const isStaff = currentRole === "Staff";
   
-  useEffect(() => {const savedUser =localStorage.getItem("currentUser"); if (savedUser) {setCurrentUser(savedUser);}loadTasks();}, []);
+  useEffect(() => {const session = loadSession();if (session.user) { setCurrentUser( session.user ); setCurrentRole( session.role );}
+    if (savedUser) {setCurrentUser(savedUser);setCurrentRole("Admin");
+    }loadTasks();}, []);
 
-function login() {
- const username = document.getElementById( "login_user" )?.value;
- const password = document.getElementById( "login_pass" )?.value;
- if ( username === "admin" && password === "123456" ) { localStorage.setItem( "TT_CurrentUser", username ); setCurrentUser(username); setShowLoginModal(false); } 
- else { alert("Login failed"); }}
+async function login() { 
+  const username = document.getElementById("login_user")?.value; 
+  const password = document.getElementById("login_pass")?.value; 
+  const { data, error } = await supabase .from("users") .select("*") .eq("username", username) .eq("password_hash", password) .single(); 
+    console.log("LOGIN RESULT:", data);  console.log("LOGIN ERROR :", error);
+    if (error || !data) { alert("Login failed"); 
+    return; } saveSession( data.username, data.role ); setCurrentUser(data.username); setCurrentRole(data.role); setShowLoginModal(false);}
 
-function logout() {localStorage.removeItem("currentUser");setCurrentUser(null);}
+function logout() {clearSession(); setCurrentUser(null);   setCurrentRole("Guest"); }
 
 async function loadTasks() { 
   const { data, error } = await supabase  .from("tasks") .select("*");
@@ -193,15 +201,18 @@ return (
           <option value=""> All Status </option>{STATUS_LIST.map((status) => (<option key={status} value={status}> {status} </option>))} </select>      </div> )} 
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "10px", flexWrap: "wrap",justifyContent: "center", }}>
-        {currentUser && ( <> 
+        {isAdmin && ( <>        
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={createNewTask}> New</button>
         <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle}onClick={editSelectedTask}>Edit</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={hoanThanhTask} >Hoàn Thành</button>
-        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>
-          {showAssignSelect && ( 
+        <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={GiaoViec}> Giao Việc</button>  </> ) }
+
+        {(isAdmin || isStaff) && ( 
+          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={hoanThanhTask} >Hoàn Thành</button> ) }
+        
+          {isAdmin && showAssignSelect && ( <>
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "10px", }} > 
           <select value={assignStaff} onChange={(e) => setAssignStaff(e.target.value) } > <option value=""> ChooseStaff </option> {STAFF_LIST .filter((s) => s) .map((s) => ( <option key={s} value={s} > {s} </option> ))} </select> 
-          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={confirmAssign} > OK </button>  </div>  )}   </>)}
+          <button style={isMobile ? mobileButtonStyle : toolbarButtonStyle} onClick={confirmAssign} > OK </button>  </div>    </>)}
  
       </div>
       <p style={{ textAlign: "center", fontWeight: "bold", color: "#0066cc", }} > Selected Row: {" "} {selectedTask ? selectedTask.task_date : "None"} {"_"}{selectedTask ? selectedTask.task_no : "None"} {"="} {selectedTask ? selectedTask.task_name : "None"} </p>
@@ -214,14 +225,7 @@ return (
     filteredTasks={filteredTasks}
     selectedTask={selectedTask}
     setSelectedTask={setSelectedTask}/> ) : (
-  <div
-    style={{
-      maxWidth: "100%",
-      maxHeight: "700px",
-      overflow: "auto",
-      border: "1px solid #ccc",
-      backgroundColor: "white",}}>
-
+  <div style={{  maxWidth: "100%",  maxHeight: "700px",  overflow: "auto", border: "1px solid #ccc", backgroundColor: "white",}}> 
     <TaskTable
       filteredTasks={filteredTasks}
       selectedTask={selectedTask}
@@ -230,20 +234,14 @@ return (
       cellStyle={cellStyle}
       formatDate={formatDate}
       formatDateTime={formatDateTime}
-      getStatusColor={getStatusColor}  />
-
-   <TTLoginModal
+      getStatusColor={getStatusColor}  />  </div>  )} 
+ 
+ <TTLoginModal
   show={showLoginModal}
   onLogin={login}
   onClose={() => setShowLoginModal(false)} />
 
-  </div>
-
-)} 
-
-      <TaskModal show={showModal} title={ editTask.id ? "Edit Task" : "New Task" } task={editTask} setTask={setEditTask} onSave={saveTask} onClose={() => setShowModal(false) } staffOptions={ STAFF_LIST } />
-    </div>
-  );
-}
+ <TaskModal show={showModal} title={ editTask.id ? "Edit Task" : "New Task" } task={editTask} setTask={setEditTask} onSave={saveTask} onClose={() => setShowModal(false) } staffOptions={ STAFF_LIST } />
+    </div> ); }
 
 export default App;
