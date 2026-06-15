@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import TaskTable from "./TaskTable";
 import TTKPI from "./TTKPI";
 import TTHeader from "./TTHeader";
+import TTLoginModal from "./TTLoginModal";
 
 const STAFF_LIST = [ "", "Điều", "Hương", "Thư", "Dùm", "Thắng", "Thành", "Phố", "Quân", "Worker01", "Worker02",];
 const STATUS_LIST = [  "Open",  "OnGoing",  "Done",  "Cancel",];
@@ -35,7 +36,9 @@ function App() {
   const [sortField, setSortField] =    useState("id");
   const [sortAsc, setSortAsc] =    useState(false);
   const [currentUser, setCurrentUser] =useState(null);
-
+  const [showLoginModal, setShowLoginModal] =useState(false);
+  
+  
   const isMobile = window.innerWidth < 768;
   const openCount =tasks.filter(t => t.status === "Open").length;
   const onGoingCount =tasks.filter(t => t.status === "OnGoing").length;
@@ -45,9 +48,11 @@ function App() {
   
   useEffect(() => {const savedUser =localStorage.getItem("currentUser"); if (savedUser) {setCurrentUser(savedUser);}loadTasks();}, []);
 
-function login() { const username = prompt("Username"); const password = prompt("Password"); 
-  if ( username === "admin" && password === "123456" ) { localStorage.setItem( "currentUser", username ); setCurrentUser(username); } 
-  else { alert("Login failed"); }}
+function login() {
+ const username = document.getElementById( "login_user" )?.value;
+ const password = document.getElementById( "login_pass" )?.value;
+ if ( username === "admin" && password === "123456" ) { localStorage.setItem( "TT_CurrentUser", username ); setCurrentUser(username); setShowLoginModal(false); } 
+ else { alert("Login failed"); }}
 
 function logout() {localStorage.removeItem("currentUser");setCurrentUser(null);}
 
@@ -154,11 +159,13 @@ function exportExcel() {
   XLSX.utils.book_append_sheet( workbook, worksheet, "Tasks");
   XLSX.writeFile( workbook,`tasks_${new Date().toISOString().slice(0, 10)}.xlsx`  );}
 
+
+// *******************************************************************************************************************************************************
 // Kết thúc danh sách các logic và function phụ vụ tính toán
 // Return : Bắt đầu từ đây sẽ là giao diên
 return (
     <div style={{  padding: "20px",  fontFamily: "Arial", width: "95%", margin: "0 auto", }} >
-      <TTHeader currentUser={currentUser} onLogin={login} onLogout={logout} />
+      <TTHeader currentUser={currentUser} onLogin={() => setShowLoginModal(true)} onLogout={logout}/>
       <h1 style={{ textAlign: "center", }} > Task Manager v0.8  </h1> 
       <TTKPI  openCount={openCount}
           onGoingCount={onGoingCount}
@@ -223,8 +230,13 @@ return (
       cellStyle={cellStyle}
       formatDate={formatDate}
       formatDateTime={formatDateTime}
-      getStatusColor={getStatusColor}
-    />
+      getStatusColor={getStatusColor}  />
+
+   <TTLoginModal
+  show={showLoginModal}
+  onLogin={login}
+  onClose={() => setShowLoginModal(false)} />
+
   </div>
 
 )} 
