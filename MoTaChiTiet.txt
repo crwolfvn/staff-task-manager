@@ -58,3 +58,15 @@ f. Tổng hợp code cập nhật website
 
 g. abc  
 
+
+
+
+
+Phân quyền : 
+Admin = All buttons
+Staffs = Reload + Filter + ClearFilter + Export Excel + Hoàn Thành 
+Guest = Reload + Filter + ClearFilter + Export Excel
+
+
+
+
